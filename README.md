@@ -247,12 +247,14 @@ The setup above is shared. The next sections give the exact commands for each co
 | Docker | Host Ollama | Container app + GPU-accelerated host Ollama (recommended on Apple Silicon) |
 | Docker | Container Ollama | CPU-only on Mac (slow); fine on Linux + NVIDIA |
 
+> **Note on `streamlit run` vs. `python -m streamlit run`:** the commands below use the `python -m streamlit` form. This guarantees the venv's Python interpreter is used. If you call `streamlit run ...` directly and a system-wide Streamlit is on your `$PATH` ahead of the venv (common on macOS with python.org installers), the system interpreter runs instead and you get `ModuleNotFoundError: No module named 'agentic_rag'` because the package is only installed in the venv.
+
 ### Run native + DummyLLM
 
 No external services required. Useful for quick UI smoke testing.
 
 ```bash
-LLM_BACKEND=dummy streamlit run src/agentic_rag/ui/app.py
+LLM_BACKEND=dummy python -m streamlit run src/agentic_rag/ui/app.py
 # → http://localhost:8501
 ```
 
@@ -274,7 +276,7 @@ curl -sf http://localhost:11434/api/tags | head -3
 Run the UI:
 ```bash
 LLM_BACKEND=ollama OLLAMA_MODEL=qwen2.5:7b-instruct \
-  streamlit run src/agentic_rag/ui/app.py
+  python -m streamlit run src/agentic_rag/ui/app.py
 ```
 
 A typical query takes ~30–60 s end-to-end on M1 Max.
