@@ -1,0 +1,64 @@
+# Two services:
+#   - app      : Streamlit UI + LangGraph runtime (always on)
+#   - ollama   : Local LLM server (optional, in 'with-llm' profile)
+#
+# Start without Ollama (Dummy LLM, fully offline CI-style):
+#     docker compose up app
+#
+# Start with Ollama (real LLM backend):
+#     docker compose --profile with-llm up
+#     # first time:
+#     docker compose exec ollama ollama pull qwen2.5:7b-instruct
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: agentic-rag:latest
+    container_name: agentic-rag-app
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8501}:8501"
+    environment:
+      LLM_BACKEND: ${LLM_BACKEND:-dummy}
+      OLLAMA_HOST: ${OLLAMA_HOST:-http://ollama:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:7b-instruct}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-BAAI/bge-small-en-v1.5}
+      DATA_DIR: /app/data
+      CHROMA_DIR: /app/data/chroma
+      GRAPH_PATH: /app/data/graph/citation_graph.pkl
+      PROCESSED_PATH: /app/data/processed/chunks.jsonl
+    volumes:
+      # Persist indices / processed chunks between restarts.
+      - app_data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: agentic-rag-ollama
+    profiles: ["with-llm"]
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+    # GPU acceleration is host-dependent — uncomment the deploy block and
+    # configure nvidia runtime if you have a CUDA host. On Apple Silicon
+    # (the developer machine), run Ollama natively on the host and point
+    # the app container at host.docker.internal instead.
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+volumes:
+  app_data:
+  ollama_models:

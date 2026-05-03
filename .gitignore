@@ -1,0 +1,27 @@
+# Task spec PDF — not redistributable, kept locally only
+RAG- Feladatkiírás- senior.pdf
+
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.env
+.ipynb_checkpoints/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.DS_Store
+
+# Data artifacts (regenerated from scripts/)
+data/raw/*.pdf
+data/processed/*.jsonl
+data/chroma/
+data/graph/*.pkl
+data/graph/*.graphml
+
+# Eval + load test outputs
+eval/reports/
+load_test/reports/
+
+# Streamlit
+.streamlit/secrets.toml

@@ -1,0 +1,232 @@
+# 15 hand-crafted evaluation questions for the AI Act + GDPR assistant.
+#
+# Each entry has:
+#   id             — short identifier
+#   category       — factual | multi_article | cross_ref | deadline | scoping | out_of_scope
+#   expected_intent — which intent the router SHOULD pick (rag | tool | direct)
+#   expected_citations — list of chunk ids whose presence in the citation set
+#                        signals correct retrieval (recall@k target)
+#   reference      — gold-standard 1–3 sentence answer for LLM-as-judge
+#
+# Coverage notes:
+#   - 1 factual per regulation (AI Act + GDPR)
+#   - 2 multi-article (requires synthesis across articles)
+#   - 3 cross-ref (retrieval needs the graph hop to succeed)
+#   - 2 deadline (exercises the non-retrieval tool path)
+#   - 2 scoping (ambiguous; tests router quality)
+#   - 1 GDPR ↔ AI Act crossover
+#   - 2 direct / out-of-scope (router must not invoke RAG)
+#   - 2 edge: article definitions + sanctions
+
+- id: q01_prohibited_practices
+  category: factual
+  expected_intent: rag
+  expected_citations: ["AI Act:article:5"]
+  reference: >
+    The AI Act prohibits manipulative or deceptive AI systems, exploitation of
+    vulnerabilities, social scoring, real-time remote biometric identification
+    in public spaces (with narrow law-enforcement exceptions), emotion
+    recognition in the workplace/education, and untargeted scraping for facial
+    recognition. See Article 5.
+
+- id: q02_high_risk_classification
+  category: factual
+  expected_intent: rag
+  expected_citations: ["AI Act:article:6"]
+  reference: >
+    Article 6 classifies an AI system as high-risk if it is a safety component
+    of a product under Union harmonisation law (Annex I) requiring third-party
+    conformity assessment, or if it falls under Annex III use cases.
+
+- id: q03_risk_management_requirements
+  category: cross_ref
+  expected_intent: rag
+  # Risk management (Art 9) is the direct answer, but Art 6 (triggers) and
+  # Art 10 (data) are cross-referenced in the text and should surface via
+  # the citation graph.
+  expected_citations:
+    - "AI Act:article:9"
+    - "AI Act:article:6"
+  reference: >
+    Article 9 mandates a continuous risk management system for high-risk AI
+    systems (defined in Article 6), covering risk identification, estimation,
+    evaluation, and mitigation throughout the lifecycle. Testing follows
+    Article 10 and logging Article 12.
+
+- id: q04_gpai_systemic_risk_threshold
+  category: cross_ref
+  expected_intent: rag
+  expected_citations:
+    - "AI Act:article:51"
+    - "AI Act:article:55"
+  reference: >
+    A general-purpose AI model is classified as having systemic risk when its
+    cumulative training compute exceeds 10^25 FLOPs, or by a Commission
+    decision. Obligations are set out in Article 55 (evaluation, adversarial
+    testing, incident reporting, cybersecurity).
+
+- id: q05_deadline_prohibitions
+  category: deadline
+  expected_intent: tool
+  expected_tool: deadline_calc
+  expected_citations: []
+  reference: >
+    AI Act prohibited practices (Chapter I and II) apply since 2 February 2025.
+
+- id: q06_deadline_high_risk
+  category: deadline
+  expected_intent: tool
+  expected_tool: deadline_calc
+  expected_citations: []
+  reference: >
+    The general AI Act application date is 2 August 2026, with Article 6(1)
+    obligations for Annex I safety components applying from 2 August 2027.
+
+- id: q07_gdpr_lawful_bases
+  category: factual
+  expected_intent: rag
+  expected_citations: ["GDPR:article:6"]
+  reference: >
+    GDPR Article 6 lists six lawful bases for processing: consent, contract,
+    legal obligation, vital interests, public interest, and legitimate
+    interests.
+
+- id: q08_right_to_erasure_scope
+  category: cross_ref
+  expected_intent: rag
+  expected_citations:
+    - "GDPR:article:17"
+    - "GDPR:article:6"
+  reference: >
+    GDPR Article 17 grants the right to erasure when data is no longer needed,
+    consent is withdrawn (Article 6(1)(a) or 9(2)(a)), or processing is
+    unlawful.
+
+- id: q09_dpia_when_required
+  category: cross_ref
+  expected_intent: rag
+  expected_citations:
+    - "GDPR:article:35"
+    - "GDPR:article:22"
+  reference: >
+    A DPIA is required when processing is likely to result in high risk —
+    especially for systematic profiling (Article 22), large-scale special
+    category data (Article 9), or systematic monitoring of public areas.
+
+- id: q10_gdpr_ai_act_crossover
+  category: multi_article
+  expected_intent: rag
+  expected_citations:
+    - "GDPR:article:22"
+    - "AI Act:article:6"
+  reference: >
+    GDPR Article 22 limits solely-automated decisions with legal effects, which
+    often overlaps with AI Act high-risk classification under Article 6 —
+    automated decisioning systems frequently qualify as high-risk and require
+    both GDPR safeguards and AI Act conformity assessment.
+
+- id: q11_ai_training_special_data
+  category: multi_article
+  expected_intent: rag
+  expected_citations:
+    - "AI Act:article:10"
+    - "GDPR:article:9"
+  reference: >
+    AI Act Article 10 allows processing of GDPR Article 9 special-category data
+    during training only with appropriate safeguards to ensure representative
+    and bias-mitigated datasets.
+
+- id: q12_transparency_obligations
+  category: factual
+  expected_intent: rag
+  expected_citations: ["AI Act:article:13"]
+  reference: >
+    Article 13 requires high-risk AI systems to be transparent enough for
+    deployers to interpret outputs, with concise instructions for use; see
+    Article 14 on human oversight.
+
+- id: q13_gdpr_fines_principles
+  category: factual
+  expected_intent: rag
+  expected_citations:
+    - "GDPR:article:83"
+    - "GDPR:article:5"
+  reference: >
+    Breaches of the core GDPR principles (Articles 5, 6, 7, 9) can attract
+    administrative fines up to EUR 20 million or 4% of global annual turnover,
+    whichever is higher (Article 83).
+
+- id: q14_greeting
+  category: out_of_scope
+  expected_intent: direct
+  expected_citations: []
+  reference: >
+    The assistant should greet or politely acknowledge non-substantive inputs
+    without invoking retrieval.
+
+- id: q15_ai_system_definition
+  category: factual
+  expected_intent: rag
+  expected_citations: ["AI Act:article:3"]
+  reference: >
+    Article 3 defines an 'AI system' as a machine-based system with varying
+    autonomy that infers from input how to generate outputs (predictions,
+    decisions, etc.) influencing physical or virtual environments.
+
+# ----------------------------------------------------------------------------
+# Structural questions (q16–q18): designed to expose the graph's value — they
+# need cross-references the user did not name explicitly. Vector retrieval
+# can usually find the article the question centers on, but the related
+# articles the question is really asking for require a graph hop.
+# ----------------------------------------------------------------------------
+
+- id: q16_gdpr_article9_referenced_by
+  category: structural
+  expected_intent: rag
+  # GDPR Article 9 (special categories) is one of the most-referenced GDPR
+  # articles. The graph holds 11 incoming edges; we accept any 2 of these
+  # well-known callers as evidence the graph hop fired correctly.
+  expected_citations:
+    - "GDPR:article:9"
+    - "GDPR:article:22"
+    - "GDPR:article:35"
+  reference: >
+    GDPR Article 9 (special categories of personal data) is referenced by
+    several other GDPR provisions — among them Article 6 (lawfulness),
+    Article 22 (automated decision-making), and Article 35 (DPIA). The
+    graph's predecessor-set on Article 9 surfaces these callers without
+    relying on semantic similarity alone.
+
+- id: q17_aiact_article9_referenced_by
+  category: structural
+  expected_intent: rag
+  # AI Act Article 9 (risk management) is referenced by 9 article nodes in
+  # the corpus graph. A semantically narrow query about Article 9 itself
+  # would surface Article 9; the graph hop is what brings in the *callers*.
+  expected_citations:
+    - "AI Act:article:9"
+    - "AI Act:article:5"
+    - "AI Act:article:13"
+  reference: >
+    AI Act Article 9 (risk management system for high-risk AI) is invoked
+    by multiple AI Act provisions, including Article 5 (prohibited
+    practices, where risk management interacts with permitted exceptions)
+    and Article 13 (transparency). Surfacing those callers requires a
+    backward graph hop.
+
+- id: q18_article5_trigger_chain
+  category: structural
+  expected_intent: rag
+  # AI Act Article 5 explicitly cross-references Annex II (biometric
+  # exception list), Article 9 (risk management) and Article 49
+  # (registration) — these are forward (successor) edges in the graph.
+  expected_citations:
+    - "AI Act:article:5"
+    - "AI Act:article:9"
+    - "AI Act:annex:II"
+  reference: >
+    Article 5 of the AI Act references Annex II (catalogue of serious
+    crimes invoked by the law-enforcement biometric exception) and
+    Article 9 (risk management). The graph's outgoing edges from Article 5
+    connect these forward dependencies even when the user's question does
+    not name them.

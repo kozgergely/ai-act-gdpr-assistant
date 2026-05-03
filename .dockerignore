@@ -1,0 +1,24 @@
+.venv/
+.git/
+.github/
+.idea/
+.vscode/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.DS_Store
+
+data/chroma/
+data/graph/
+data/processed/
+data/raw/*.pdf
+
+eval/reports/
+load_test/reports/
+
+# Spec PDF is not needed at runtime.
+*.pdf
+!data/raw/fixture.jsonl
