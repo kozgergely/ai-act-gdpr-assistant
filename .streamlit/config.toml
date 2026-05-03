@@ -1,0 +1,14 @@
+[server]
+# The hot-reload watcher walks every loaded module's __path__. Some heavy
+# transformers modules (e.g. transformers.models.zoedepth) lazy-import
+# optional vision deps like torchvision; we don't install those because the
+# project only does text embeddings. The watcher reports the failure as a
+# noisy warning even though the app runs fine. Disabling the watcher
+# silences it; we don't need hot-reload at runtime.
+fileWatcherType = "none"
+
+[browser]
+gatherUsageStats = false
+
+[logger]
+level = "warning"
