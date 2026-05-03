@@ -210,59 +210,42 @@ At concurrency, the sweet spot is ~5 workers; beyond that, Chroma's per-collecti
 - *Optional:* **[Ollama](https://ollama.com/)** for real-LLM answers. On macOS: `brew install --cask ollama-app`. The pipeline runs without it via the `DummyLLM` fallback.
 - *Optional:* **Docker Desktop** for the containerized path.
 
-### Quickstart — the simplest happy path (~5 min on M1 Max)
+### Setup (do once)
 
 ```bash
 # 1. Clone and enter the repo
-git clone <repo-url> pwc && cd pwc
+git clone https://github.com/<user>/ai-act-gdpr-assistant.git && cd ai-act-gdpr-assistant
 
-# 2. Create the venv and install
+# 2. Create the venv and install dependencies
 uv venv --python 3.11
 source .venv/bin/activate
 uv pip install -e ".[dev]"
 
-# 3. Build indices from the shipped fixture (real PDFs optional, see below)
-python scripts/build_indices.py
+# 3. (OPTIONAL) Download the real EUR-Lex PDFs (~3 MB total).
+#    Skip this step to use the shipped 19-chunk fixture instead.
+#    If EUR-Lex's CloudFront WAF blocks the request, the script prints
+#    manual download URLs you can open in a browser.
+python scripts/download_data.py
 
-# 4. Run the UI with the deterministic Dummy LLM
-LLM_BACKEND=dummy streamlit run src/agentic_rag/ui/app.py
-# → open http://localhost:8501
+# 4. Build the vector store + citation graph.
+#    If step 3 was skipped, falls back to data/raw/fixture.jsonl.
+#    The pipeline runs end-to-end either way.
+python scripts/build_indices.py
 ```
 
-This works fully offline and produces placeholder answers. To get real natural-language answers, swap the LLM (next section).
+The build takes ~30 s on the fixture (19 chunks → ~30 graph nodes) and ~60 s on the full PDFs (542 chunks → ~400 graph nodes). The first run downloads the `bge-small-en-v1.5` embedding model from HuggingFace (~67 MB).
 
-### Setup matrix — pick a row
+### How to actually run it — pick a row
+
+The setup above is shared. The next sections give the exact commands for each combination of "where the app runs" × "which LLM backend".
 
 | Where the app runs | LLM backend | When to use |
 |---|---|---|
-| Native Python | DummyLLM | Fastest setup; placeholder answers but full pipeline + UI works |
-| Native Python | Host Ollama | Best demo experience on Mac; Metal GPU, real answers |
+| Native Python | DummyLLM | Fastest, fully offline; placeholder answers but full pipeline + UI works |
+| Native Python | Host Ollama | Best demo on Mac; Metal GPU, real natural-language answers |
 | Docker | DummyLLM | Validates the container build; no LLM needed |
 | Docker | Host Ollama | Container app + GPU-accelerated host Ollama (recommended on Apple Silicon) |
 | Docker | Container Ollama | CPU-only on Mac (slow); fine on Linux + NVIDIA |
-
-The next sections give the exact commands for each row.
-
-### One-time prep (any setup)
-
-```bash
-# 1. Install dependencies
-uv venv --python 3.11
-source .venv/bin/activate
-uv pip install -e ".[dev]"
-
-# 2a. (Optional) Download the real EUR-Lex PDFs.
-#     If EUR-Lex's CloudFront WAF blocks the request, the script prints
-#     manual download URLs you can open in a browser.
-python scripts/download_data.py
-
-# 2b. Build the vector store + citation graph.
-#     Falls back to the shipped fixture (data/raw/fixture.jsonl)
-#     if no PDF is present — the pipeline still works end to end.
-python scripts/build_indices.py
-```
-
-The build takes ~30 s on the fixture (19 chunks) and ~60 s on the full PDFs (542 chunks). The first run downloads the bge-small-en-v1.5 embedding model from HuggingFace (~67 MB).
 
 ### Run native + DummyLLM
 
