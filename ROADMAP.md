@@ -78,56 +78,22 @@ This document describes the phases following the current **Phase 1 (prototype)**
 
 **Goal:** multi-tenant, enterprise-grade, SLA-backed, audited service. The focus shifts to **versioning**, **governance**, and **continuous improvement**.
 
-### Functional deltas vs. Phase 2
+Phase 3 is far enough out that committing to specific managed services would be guesswork. The list below captures the *capabilities* we expect to add on top of Phase 2; the concrete cloud mapping is deferred to that point in time, when the actual workload, customer base, and compliance constraints are known.
 
-1. **Multi-tenancy**
-   - Per-tenant vector namespaces and per-tenant fine-tuned prompt templates.
-   - Tenant-selectable embedding model / LLM (e.g. EU-only vs. global).
-2. **Governance & audit**
-   - Full query + retrieval + answer + model-version audit log on immutable storage, isolated per tenant.
-   - "Provenance badge" — every citation surfaces the EUR-Lex CELEX id + version + effective date.
-   - GDPR Article 17 (right to erasure) support for user chat logs.
-3. **Continuous evaluation**
-   - 500+ question regression run on every release with a regression threshold.
-   - Human-in-the-loop: random 1 % of answers reviewed by a lawyer, results fed back into prompt and retrieval fine-tuning.
-   - Shadow traffic for new models / indices before production rollout.
-4. **SLA / DR**
-   - Multi-region active/active for reads at minimum; active/passive on the write path.
-   - RPO < 5 min for document ingestion; RTO < 15 min for inference.
-5. **Cost governance**
-   - Per-tenant cost attribution (token counting + vector search quotas).
-   - Small-model fallback (Gemini Flash / GPT-4o-mini) for simple queries; the router decides.
-6. **Versioning & lifecycle**
-   - Always answer against a specific AI Act / GDPR consolidated text version (date-stamped).
-   - Automatic re-ingest + delta-eval when a new consolidated version is published.
+### What's new in Phase 3 (vs. Phase 2)
 
-### Phase 3 — capability → cloud mapping
+1. **Multi-tenancy** — per-tenant vector namespaces, per-tenant prompt templates, optional per-tenant embedding model / LLM choice (e.g. EU-only vs. global).
+2. **Governance & audit** — full query + retrieval + answer + model-version audit log on immutable storage, isolated per tenant. Citations carry a "provenance badge" with the EUR-Lex CELEX id + version + effective date. GDPR Article 17 (right to erasure) support for user chat logs.
+3. **Continuous evaluation** — 500+ question regression run on every release. Human-in-the-loop: random 1 % of answers reviewed by a lawyer; results feed back into prompt and retrieval fine-tuning. Shadow traffic for new models / indices before rollout.
+4. **SLA / disaster recovery** — multi-region active/active for reads, active/passive on the write path. RPO < 5 min on ingestion, RTO < 15 min on inference.
+5. **Cost governance** — per-tenant cost attribution (token counting + vector search quotas). Small-model fallback (e.g. Gemini Flash / GPT-4o-mini) for simple queries; the router decides which model handles a given turn.
+6. **Versioning & lifecycle** — every answer is anchored to a specific AI Act / GDPR consolidated text version. Automatic re-ingest + delta-eval when a new consolidated version is published.
 
-| Capability | GCP | Azure |
-|---|---|---|
-| **LLM routing** | Vertex AI Model Garden + Vertex AI Prediction Router (Gemini Pro for hard, Flash for easy) | Azure AI Foundry + Prompt Flow router (GPT-4o vs. 4o-mini) |
-| **Vector DB (scale)** | Vertex AI Vector Search (multi-region replication) | Azure AI Search (S3 HD / L2 SKU, multi-region replication) |
-| **Graph DB (scale)** | Spanner Graph (global, regional replicas) | Cosmos DB for Gremlin (multi-region, multi-write) |
-| **Agent orchestration** | Vertex AI Agent Builder + custom LangGraph agents (GKE) | Azure AI Foundry Agent Service + LangGraph (AKS) |
-| **Ingestion pipeline** | Cloud Composer (Airflow 2) + Dataflow (Beam) for batch; Pub/Sub + Cloud Functions for delta | Azure Data Factory + Databricks for batch; Event Grid + Functions for delta |
-| **Document versioning** | BigQuery + versioned Cloud Storage; Dataplex metadata | Data Lake Storage Gen2 + Purview catalog |
-| **Audit log (immutable)** | Cloud Logging → BigQuery sink with bucket-locking and retention policies | Log Analytics + Azure Storage immutable blob (WORM) |
-| **Multi-tenant identity** | Identity Platform + per-tenant JWT custom claims; IAM Conditions | Entra ID External ID (B2B/B2C) + APIM subscription per tenant |
-| **RBAC (row-level)** | BigQuery row-level security + per-tenant vector namespaces | Azure AI Search security filters + RLS on the metadata DB |
-| **Secrets + KMS** | Cloud KMS + Secret Manager + CMEK throughout | Key Vault + Azure Disk Encryption + CMK throughout |
-| **Continuous eval** | Vertex AI Experiments + custom GKE jobs | Azure AI Foundry Evaluation + custom AKS jobs |
-| **A/B + shadow traffic** | Cloud Run traffic splitting + Vertex Endpoints traffic split | Container Apps revisions + API Management canary |
-| **Cost attribution** | Billing export → BigQuery + tenant tag | Cost Management + resource tags |
-| **Data loss prevention (PII)** | Cloud DLP + VPC-SC perimeter | Microsoft Purview + Private Endpoints |
-| **Responsible AI** | Vertex AI Safety Filters + Model Armor | Azure AI Content Safety + Prompt Shields |
+### High-level notes
 
-### Phase 3 trade-offs and notes
-
-- **GCP vs. Azure ecosystem:** in legal / compliance segments, customers tend to prefer **Azure** (Entra ID, Purview offer more mature governance), unless there is a clear Google affinity. If the Gemini / Vertex AI Agent Builder stack is the right fit, GCP is equally capable.
-- **EU data residency:** both clouds offer EU regions (europe-west3/4 on GCP; West Europe / Sweden Central on Azure). **Azure OpenAI** requires EU Data Boundary to be explicitly enabled; **Vertex AI Gemini** EU residency is now available but the model region must be set explicitly.
-- **Self-hosted vs. managed LLM in Phase 3:** above ~10 k queries/day, self-hosted (vLLM or TGI on AKS/GKE) is the cost optimum but SRE-heavy. Managed services (GPT-4o, Gemini Pro) win until the break-even point, or where compliance demands the model run on owned infrastructure.
-- **Graph DB choice:** if the citation + entity graph exceeds ~100M edges, managed Neo4j Enterprise is preferable to Cosmos Gremlin / Spanner Graph because the Cypher ecosystem and the graph algorithms (PageRank, community detection) are more mature.
-- **Migration path:** Phase 1 → Phase 2 does not touch the domain logic thanks to the app-level isolation — only `rag/store.py`, `llm/base.py`, and `config.py` change. Phase 2 → Phase 3 is **breaking** because of multi-tenancy and versioning (state and storage models change) — plan a migration window.
+- The Phase 2 → Phase 3 jump is **breaking**: multi-tenancy and versioning require schema migrations. Phase 1 → Phase 2 only touches `rag/store.py`, `llm/base.py`, and `config.py` thanks to the app-level isolation.
+- EU data residency stays mandatory throughout; the cloud choice (GCP vs. Azure) is driven by the customer's existing footprint and governance maturity rather than by raw capability.
+- At ~10 k+ queries/day the cost optimum shifts from managed LLM APIs to self-hosted inference (vLLM / TGI on a GPU pool); break-even is recomputed once Phase 2 traffic is real.
 
 ---
 
