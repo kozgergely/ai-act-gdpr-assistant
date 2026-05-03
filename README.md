@@ -2,8 +2,8 @@
 
 Senior AI Engineer take-home prototype. An **agentic RAG chatbot** built with LangGraph, a **hybrid vector + citation-graph retrieval** subsystem, and a fully open-source / local-first LLM stack (Ollama + `qwen2.5:7b-instruct`, with a deterministic `DummyLLM` fallback). Packaged with Docker + docker-compose.
 
-- Fejlesztői napló (lépések, döntések, alternatívák): **[`DEVLOG.md`](./DEVLOG.md)**
-- Post-prototípus roadmap (Phase 2 / 3 + GCP + Azure): **[`ROADMAP.md`](./ROADMAP.md)**
+- Development log (chronological steps, design decisions, alternatives — *Hungarian*): **[`DEVLOG.md`](./DEVLOG.md)**
+- Post-prototype roadmap (Phase 2 / 3 with GCP + Azure mappings — *English*): **[`ROADMAP.md`](./ROADMAP.md)**
 
 ---
 
@@ -126,7 +126,7 @@ query_rewrite → vector_retrieve → graph_expand → fuse_rerank → context_a
 | Graph store | NetworkX (in-process, pickled) | Lightweight; deterministic cross-ref graph needs no LLM |
 | UI | Streamlit | Single-file prototype UI; trivial to run |
 
-See [`DEVLOG.md`](./DEVLOG.md) for full decision rationale including alternatives considered.
+See [`DEVLOG.md`](./DEVLOG.md) (Hungarian) for full decision rationale including alternatives considered.
 
 ---
 
@@ -134,7 +134,7 @@ See [`DEVLOG.md`](./DEVLOG.md) for full decision rationale including alternative
 
 ### Functional eval — 15-question gold set
 
-See [`eval/questions.yaml`](./eval/questions.yaml) for the full set. Three scoring layers (per D12 in DEVLOG):
+See [`eval/questions.yaml`](./eval/questions.yaml) for the full set. Three scoring layers (per D12 in [`DEVLOG.md`](./DEVLOG.md), Hungarian):
 
 | Layer | Metric | DummyLLM (542 chunk) | Real LLM (qwen2.5:7b, 542 chunk) |
 |---|---|---|---|
@@ -162,7 +162,7 @@ Two findings:
 **Per-question highlights (real-LLM run):**
 - Pure factual (q01, q02, q07, q12, q13, q15): 100% recall.
 - Multi-article cross-reference (q03, q08, q09, q11): 50% recall — one expected article surfaces, the other doesn't (graph expansion + RRF doesn't always pull both at once).
-- **q10 (GDPR Article 22 ↔ AI Act Article 6)**: 0% recall — the citation graph currently has **no cross-regulation edges**. Documented limitation; two fix paths queued in [`DEVLOG.md §4`](./DEVLOG.md).
+- **q10 (GDPR Article 22 ↔ AI Act Article 6)**: 0% recall — the citation graph currently has **no cross-regulation edges**. Documented limitation; two fix paths queued in [`DEVLOG.md §4`](./DEVLOG.md) (Hungarian).
 
 Reproduce:
 
@@ -427,15 +427,15 @@ If both succeed, the pipeline is healthy. From here, switch to a real LLM (Ollam
 │   └── graph/               # NetworkX pickle + GraphML
 ├── Dockerfile               # multi-stage, slim runtime, uv
 ├── docker-compose.yml       # app + optional ollama (with-llm profile)
-├── DEVLOG.md                # chronological steps + decision journal
-└── ROADMAP.md               # Phase 2 / Phase 3 + GCP + Azure mapping
+├── DEVLOG.md                # chronological steps + decision journal (Hungarian)
+└── ROADMAP.md               # Phase 2 / Phase 3 + GCP + Azure mapping (English)
 ```
 
 ---
 
 ## 6. Known limitations / next steps
 
-- **Cross-regulation graph edges** — currently only within-regulation (fix queued, see DEVLOG §4).
+- **Cross-regulation graph edges** — currently only within-regulation (fix queued, see DEVLOG §4 — Hungarian).
 - **Stateless LLM calls (no conversational memory)** — every query is sent to the LLM in isolation. The chat history visible in the UI is purely cosmetic; the agent does not see prior turns, so pronoun follow-ups like *"What does it reference?"* do not resolve correctly. Targeted fix in Phase 2: a query-rewrite pre-step that folds the last N turns into a self-contained question before the router.
 - **Reranker** — cross-encoder reranker (e.g. `bge-reranker-base`) would lift retrieval precision ~5–10pp for a ~150 ms cost; targeted for Phase 2.
 - **Entity / GraphRAG-style graph** — deferred pending eval signal; current citation-graph approach already closes most cross-reference gaps deterministically.
